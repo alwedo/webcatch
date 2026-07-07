@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/alwedo/webcatch/compare/v0.1.0...v0.1.1) (2026-07-07)
+
+
+### Bug Fixes
+
+* use correct Go version from go.mod in release workflow ([adb4a2f](https://github.com/alwedo/webcatch/commit/adb4a2f92151e8438d7454b08d4d19f0de129757))
+
 ## [0.1.0](https://github.com/alwedo/webcatch/compare/v0.0.0...v0.1.0) (2026-07-07)
 
 
