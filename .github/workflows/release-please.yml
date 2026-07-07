@@ -28,6 +28,8 @@ jobs:
       - name: Set up Go
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
 
       - name: Run GoReleaser
         if: ${{ steps.release.outputs.release_created }}
