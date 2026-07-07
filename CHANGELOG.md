@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/alwedo/webcatch/compare/v0.1.1...v0.2.0) (2026-07-07)
+
+
+### Features
+
+* add JSON beautify button for request bodies ([8ed00e9](https://github.com/alwedo/webcatch/commit/8ed00e9cdebc5e65fc3e681c2a73d964bef5f301))
+
 ## [0.1.1](https://github.com/alwedo/webcatch/compare/v0.1.0...v0.1.1) (2026-07-07)
 
 
