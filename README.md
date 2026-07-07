@@ -6,6 +6,24 @@
 
 A simple HTTP request inspector that captures and displays incoming requests in real-time.
 
+## Installation
+
+### Homebrew (macOS/Linux)
+
+```bash
+brew install alwedo/tap/webcatch
+```
+
+### From Source
+
+```bash
+go install github.com/alwedo/webcatch@latest
+```
+
+### Download Binary
+
+Download the latest release from the [releases page](https://github.com/alwedo/webcatch/releases).
+
 ## Usage
 
 ```bash
