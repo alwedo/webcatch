@@ -29,3 +29,17 @@ checksum:
 
 changelog:
   disable: true
+
+brews:
+  - repository:
+      owner: alwedo
+      name: homebrew-tap
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/alwedo/webcatch
+    description: "Simple HTTP request inspector that captures and displays incoming requests in real-time"
+    license: MIT
+    install: |
+      bin.install "webcatch"
+    test: |
+      system "#{bin}/webcatch", "--version"
