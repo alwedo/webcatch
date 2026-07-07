@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/alwedo/webcatch/compare/v0.2.0...v0.3.0) (2026-07-07)
+
+
+### Features
+
+* add rounded borders ([8c47c77](https://github.com/alwedo/webcatch/commit/8c47c77360ffee81e4daa97f3dde6be1c7ff3745))
+
 ## [0.2.0](https://github.com/alwedo/webcatch/compare/v0.1.1...v0.2.0) (2026-07-07)
 
 
