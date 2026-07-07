@@ -27,7 +27,7 @@ Download the latest release from the [releases page](https://github.com/alwedo/w
 ## Usage
 
 ```bash
-go run .
+webcatch
 ```
 
 This starts two servers:
@@ -44,7 +44,7 @@ This starts two servers:
 
 Example with custom ports:
 ```bash
-./webcatch --capture-port 9000 --viewer-port 9001
+webcatch --capture-port 9000 --viewer-port 9001
 ```
 
 ### Example
@@ -90,5 +90,18 @@ go test ./...
 ## Version
 
 ```bash
-./webcatch --version
+webcatch --version
+```
+
+## Development
+
+Run from source:
+```bash
+go run .
+```
+
+Build locally:
+```bash
+go build -o webcatch
+./webcatch
 ```
