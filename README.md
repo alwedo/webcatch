@@ -16,6 +16,19 @@ This starts two servers:
 - **Capture server** on `:8080` - send requests here to capture them
 - **Viewer server** on `:8081` - view captured requests in your browser
 
+### Flags
+
+```bash
+--capture-port  Port for capture server (default: 8080)
+--viewer-port   Port for viewer server (default: 8081)
+--version       Print version and exit
+```
+
+Example with custom ports:
+```bash
+./webcatch --capture-port 9000 --viewer-port 9001
+```
+
 ### Example
 
 Send a test request:

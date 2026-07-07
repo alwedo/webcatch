@@ -17,6 +17,8 @@ var Version = "dev"
 
 func main() {
 	versionFlag := flag.Bool("version", false, "Print version and exit")
+	capturePort := flag.String("capture-port", "8080", "Port for capture server")
+	viewerPort := flag.String("viewer-port", "8081", "Port for viewer server")
 	flag.Parse()
 
 	if *versionFlag {
@@ -26,20 +28,23 @@ func main() {
 
 	store := NewCallStore()
 
-	captureServer := NewCapture(store, ":8080")
-	viewerServer := NewViewer(store, ":8081")
+	captureAddr := ":" + *capturePort
+	viewerAddr := ":" + *viewerPort
+
+	captureServer := NewCapture(store, captureAddr)
+	viewerServer := NewViewer(store, viewerAddr)
 
 	var wg sync.WaitGroup
 
 	wg.Go(func() {
-		log.Println("Capture server listening on :8080")
+		log.Printf("Capture server listening on %s\n", captureAddr)
 		if err := captureServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Capture server failed: %v", err)
 		}
 	})
 
 	wg.Go(func() {
-		log.Println("View server listening on :8081")
+		log.Printf("View server listening on %s\n", viewerAddr)
 		if err := viewerServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("View server failed: %v", err)
 		}
