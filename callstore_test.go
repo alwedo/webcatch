@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -124,6 +125,51 @@ func TestCallStore_MarkViewed_NotFound(t *testing.T) {
 	store.Add(CapturedCall{Method: "GET", Path: "/test"})
 	if _, ok := store.MarkViewed(2); ok {
 		t.Error("expected MarkViewed to fail for unknown ID")
+	}
+}
+
+func TestCallStore_SetBeautified(t *testing.T) {
+	store := NewCallStore()
+
+	store.Add(CapturedCall{Method: "GET", Path: "/test", Body: `{"key":"value"}`})
+
+	call, ok := store.SetBeautified(1, true)
+	if !ok {
+		t.Fatal("expected SetBeautified to succeed for existing call")
+	}
+	if !call.Beautified {
+		t.Error("expected returned call to be beautified")
+	}
+	if want := "{\n  \"key\": \"value\"\n}"; call.DisplayBody() != want {
+		t.Errorf("expected DisplayBody %q, got %q", want, call.DisplayBody())
+	}
+
+	if _, ok := store.SetBeautified(42, true); ok {
+		t.Error("expected SetBeautified to fail for unknown ID")
+	}
+
+	call, ok = store.SetBeautified(1, false)
+	if !ok || call.Beautified {
+		t.Error("expected SetBeautified(false) to clear the flag")
+	}
+}
+
+func TestCapturedCall_DisplayBody_InvalidJSON(t *testing.T) {
+	call := CapturedCall{Body: "not json", Beautified: true}
+	if call.DisplayBody() != "not json" {
+		t.Errorf("expected DisplayBody to fall back to raw body, got %q", call.DisplayBody())
+	}
+	if call.IsJSON() {
+		t.Error("expected IsJSON to be false for invalid JSON")
+	}
+}
+
+func TestCapturedCall_DisplayBody_IndentPreservesKeyOrder(t *testing.T) {
+	body := `{"z":1,"a":{"c":2,"b":3}}`
+	call := CapturedCall{Body: body, Beautified: true}
+	display := call.DisplayBody()
+	if !strings.Contains(display, "\"z\"") || strings.Index(display, "\"z\"") > strings.Index(display, "\"a\"") {
+		t.Errorf("expected key order to be preserved, got %s", display)
 	}
 }
 

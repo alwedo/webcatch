@@ -141,6 +141,70 @@ func TestViewer_MarkViewed_InvalidID(t *testing.T) {
 	}
 }
 
+func TestViewer_Beautify(t *testing.T) {
+	store := NewCallStore()
+	store.Add(CapturedCall{Method: "GET", Path: "/test", Body: `{"key":"value"}`})
+	server := NewViewer(store, ":8081")
+
+	// The page shows the beautify button for JSON bodies.
+	w := httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	if !strings.Contains(w.Body.String(), "beautify json") {
+		t.Error("expected page to show beautify button for JSON body")
+	}
+
+	// Beautifying returns the prettified card and flips the button label.
+	// (html/template escapes quotes as &#34; in text contexts.)
+	w = httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, httptest.NewRequest("POST", "/calls/1/beautify", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, `&#34;key&#34;: &#34;value&#34;`) {
+		t.Errorf("expected prettified body (spaced colon) in response, got %s", body)
+	}
+	if strings.Contains(body, `{&#34;key&#34;:&#34;value&#34;}`) {
+		t.Errorf("expected body not to be compact after beautify, got %s", body)
+	}
+	if !strings.Contains(body, "minify json") {
+		t.Error("expected button label to flip to minify after beautify")
+	}
+
+	// Minifying returns the compact body again.
+	w = httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, httptest.NewRequest("POST", "/calls/1/minify", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), `{&#34;key&#34;:&#34;value&#34;}`) {
+		t.Errorf("expected compact body after minify, got %s", w.Body.String())
+	}
+}
+
+func TestViewer_Beautify_NonJSONBody(t *testing.T) {
+	store := NewCallStore()
+	store.Add(CapturedCall{Method: "GET", Path: "/test", Body: "plain text"})
+	server := NewViewer(store, ":8081")
+
+	w := httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	if strings.Contains(w.Body.String(), "json-beautify-btn") {
+		t.Error("expected no beautify button for non-JSON body")
+	}
+}
+
+func TestViewer_Beautify_UnknownID(t *testing.T) {
+	store := NewCallStore()
+	server := NewViewer(store, ":8081")
+
+	w := httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, httptest.NewRequest("POST", "/calls/999/beautify", nil))
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected status 404, got %d", w.Code)
+	}
+}
+
 func TestViewer_Clear_HTMXRequest(t *testing.T) {
 	store := NewCallStore()
 	store.Add(CapturedCall{Method: "GET", Path: "/test"})

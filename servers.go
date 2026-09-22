@@ -79,6 +79,27 @@ func NewViewer(store *CallStore, addr string) *http.Server {
 		renderTemplate(w, "call-card", call)
 	})
 
+	setBeautified := func(beautified bool) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			id, err := strconv.Atoi(r.PathValue("id"))
+			if err != nil {
+				http.Error(w, "invalid call id", http.StatusBadRequest)
+				return
+			}
+
+			call, ok := store.SetBeautified(id, beautified)
+			if !ok {
+				http.Error(w, "call not found", http.StatusNotFound)
+				return
+			}
+
+			renderTemplate(w, "call-card", call)
+		}
+	}
+
+	mux.HandleFunc("POST /calls/{id}/beautify", setBeautified(true))
+	mux.HandleFunc("POST /calls/{id}/minify", setBeautified(false))
+
 	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")

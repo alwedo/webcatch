@@ -238,47 +238,6 @@
 
         <script src="/static/js/htmx.min.js"></script>
         <script src="/static/js/hx-sse.min.js"></script>
-
-
-        <script>
-            // Check all body content on page load and show beautify button if valid JSON
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('.body-content').forEach(function(bodyContent) {
-                    const text = bodyContent.textContent.trim();
-                    try {
-                        JSON.parse(text);
-                        const button = bodyContent.closest('.call-section').querySelector('.json-beautify-btn');
-                        if (button) {
-                            button.style.display = 'inline-block';
-                        }
-                    } catch (e) {
-                        // Not valid JSON, button stays hidden
-                    }
-                });
-            });
-
-            function beautifyJSON(button) {
-                const bodyContent = button.closest('.call-section').querySelector('.body-content');
-                const text = bodyContent.textContent;
-
-                const parsed = JSON.parse(text);
-                const beautified = JSON.stringify(parsed, null, 2);
-                bodyContent.textContent = beautified;
-                button.textContent = '[ minify json ]';
-                button.onclick = function() { minifyJSON(this); };
-            }
-
-            function minifyJSON(button) {
-                const bodyContent = button.closest('.call-section').querySelector('.body-content');
-                const text = bodyContent.textContent;
-
-                const parsed = JSON.parse(text);
-                const minified = JSON.stringify(parsed);
-                bodyContent.textContent = minified;
-                button.textContent = '[ beautify json ]';
-                button.onclick = function() { beautifyJSON(this); };
-            }
-        </script>
     </div>
 </body>
 </html>
@@ -312,9 +271,9 @@
         <div class="call-section">
             <div class="section-title">
                 body
-                <button class="btn json-beautify-btn" style="margin-left: 10px; padding: 2px 8px; font-size: 0.75em; display: none;" onclick="beautifyJSON(this)">[ beautify json ]</button>
+                {{if .IsJSON}}<button class="btn json-beautify-btn" style="margin-left: 10px; padding: 2px 8px; font-size: 0.75em;" hx-post="{{if .Beautified}}/calls/{{.ID}}/minify{{else}}/calls/{{.ID}}/beautify{{end}}" hx-target="closest .call-card" hx-swap="outerHTML">[ {{if .Beautified}}minify{{else}}beautify{{end}} json ]</button>{{end}}
             </div>
-            <div class="body-content">{{.Body}}</div>
+            <div class="body-content">{{.DisplayBody}}</div>
         </div>
         {{end}}
     </div>
