@@ -1,0 +1,2 @@
+# Vendored third-party assets — exclude from GitHub language statistics.
+assets/static/js/* linguist-vendored
