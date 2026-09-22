@@ -111,14 +111,8 @@
         }
 
         .new-badge {
-            background: none;
-            border: none;
-            padding: 0;
-            color: #000000;
-            font-weight: bold;
-            font-size: 0.85em;
-            font-family: 'Courier New', monospace;
-            cursor: pointer;
+            padding: 5px 15px;
+            font-size: 0.8em;
         }
 
         .call-body {
@@ -241,7 +235,7 @@
             <span class="call-method">{{.Method}}</span>
             <span class="call-path">{{.Path}}</span>
         </div>
-        {{if not .Viewed}}<button class="new-badge" title="Mark as viewed" hx-post="/calls/{{.ID}}/viewed" hx-target="closest .call-card" hx-swap="outerHTML">[ new ]</button>{{end}}
+        {{if not .Viewed}}<button class="btn new-badge" title="Mark as viewed" hx-post="/calls/{{.ID}}/viewed" hx-target="closest .call-card" hx-swap="outerHTML">[ new ]</button>{{end}}
         <span class="call-time">{{.Timestamp.Format "2006-01-02 15:04:05"}}</span>
     </div>
     <div class="call-body">
