@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/alwedo/webcatch/compare/v0.4.0...v0.4.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* remove underline on [ new ] badge hover ([93915ea](https://github.com/alwedo/webcatch/commit/93915ea97b63fb630268bdd96a4f2eadf9ecd222))
+* style [ new ] badge like other buttons ([7f6c48d](https://github.com/alwedo/webcatch/commit/7f6c48d51cbe6f3eda64f076ce4d345171200c39))
+
 ## [0.4.0](https://github.com/alwedo/webcatch/compare/v0.3.0...v0.4.0) (2026-09-22)
 
 
