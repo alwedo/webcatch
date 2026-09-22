@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//go:embed template.html
+//go:embed template.tmpl
 var templateHTML string
 
 func NewCapture(store *CallStore, addr string) *http.Server {
