@@ -46,24 +46,42 @@ func NewCapture(store *CallStore, addr string) *http.Server {
 }
 
 func NewViewer(store *CallStore, addr string) *http.Server {
-	mux := http.NewServeMux()
 	tmpl := template.Must(template.ParseFS(assets.HTMLFiles, "template.tmpl"))
 
-	renderTemplate := func(w http.ResponseWriter, name string, data any) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
-			http.Error(w, fmt.Sprintf("Error rendering template: %v", err), http.StatusInternalServerError)
-		}
-	}
+	mux := http.NewServeMux()
 
 	fileServer := http.FileServerFS(assets.StaticFiles)
 	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
-		renderTemplate(w, "view", store.GetAll())
-	})
+	mux.HandleFunc("/", handleIndex(store, tmpl))
+	mux.HandleFunc("/events", handleEvents(store))
+	mux.HandleFunc("POST /calls/{id}/viewed", handleViewed(store, tmpl))
+	mux.HandleFunc("POST /calls/{id}/beautify", handleBeautify(store, tmpl, true))
+	mux.HandleFunc("POST /calls/{id}/minify", handleBeautify(store, tmpl, false))
+	mux.HandleFunc("POST /clear", handleClear(store, tmpl))
 
-	mux.HandleFunc("POST /calls/{id}/viewed", func(w http.ResponseWriter, r *http.Request) {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+}
+
+func renderTemplate(tmpl *template.Template, w http.ResponseWriter, name string, data any) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
+		http.Error(w, fmt.Sprintf("Error rendering template: %v", err), http.StatusInternalServerError)
+	}
+}
+
+func handleIndex(store *CallStore, tmpl *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		renderTemplate(tmpl, w, "view", store.GetAll())
+	}
+}
+
+func handleViewed(store *CallStore, tmpl *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.PathValue("id"))
 		if err != nil {
 			http.Error(w, "invalid call id", http.StatusBadRequest)
@@ -76,31 +94,30 @@ func NewViewer(store *CallStore, addr string) *http.Server {
 			return
 		}
 
-		renderTemplate(w, "call-card", call)
-	})
-
-	setBeautified := func(beautified bool) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			id, err := strconv.Atoi(r.PathValue("id"))
-			if err != nil {
-				http.Error(w, "invalid call id", http.StatusBadRequest)
-				return
-			}
-
-			call, ok := store.SetBeautified(id, beautified)
-			if !ok {
-				http.Error(w, "call not found", http.StatusNotFound)
-				return
-			}
-
-			renderTemplate(w, "call-card", call)
-		}
+		renderTemplate(tmpl, w, "call-card", call)
 	}
+}
 
-	mux.HandleFunc("POST /calls/{id}/beautify", setBeautified(true))
-	mux.HandleFunc("POST /calls/{id}/minify", setBeautified(false))
+func handleBeautify(store *CallStore, tmpl *template.Template, beautified bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid call id", http.StatusBadRequest)
+			return
+		}
 
-	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		call, ok := store.SetBeautified(id, beautified)
+		if !ok {
+			http.Error(w, "call not found", http.StatusNotFound)
+			return
+		}
+
+		renderTemplate(tmpl, w, "call-card", call)
+	}
+}
+
+func handleEvents(store *CallStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
@@ -129,23 +146,19 @@ func NewViewer(store *CallStore, addr string) *http.Server {
 				flusher.Flush()
 			}
 		}
-	})
+	}
+}
 
-	mux.HandleFunc("POST /clear", func(w http.ResponseWriter, r *http.Request) {
+func handleClear(store *CallStore, tmpl *template.Template) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		store.Clear()
 
 		if r.Header.Get("HX-Request") == "true" {
-			renderTemplate(w, "page-content", store.GetAll())
+			renderTemplate(tmpl, w, "page-content", store.GetAll())
 			return
 		}
 
 		w.Header().Set("Location", "/")
 		w.WriteHeader(http.StatusSeeOther)
-	})
-
-	return &http.Server{
-		Addr:              addr,
-		Handler:           mux,
-		ReadHeaderTimeout: 10 * time.Second,
 	}
 }
