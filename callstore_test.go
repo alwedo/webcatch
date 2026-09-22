@@ -76,6 +76,57 @@ func TestCallStore_GetAll_Reversed(t *testing.T) {
 	}
 }
 
+func TestCallStore_Add_AssignsIncrementingIDs(t *testing.T) {
+	store := NewCallStore()
+
+	store.Add(CapturedCall{Method: "GET", Path: "/first"})
+	store.Add(CapturedCall{Method: "GET", Path: "/second"})
+
+	calls := store.GetAll()
+	if calls[0].ID != 2 {
+		t.Errorf("expected newest call (second added) ID 2, got %d", calls[0].ID)
+	}
+	if calls[1].ID != 1 {
+		t.Errorf("expected oldest call (first added) ID 1, got %d", calls[1].ID)
+	}
+}
+
+func TestCallStore_MarkViewed(t *testing.T) {
+	store := NewCallStore()
+
+	store.Add(CapturedCall{Method: "GET", Path: "/test"})
+	store.Add(CapturedCall{Method: "GET", Path: "/other"})
+
+	call, ok := store.MarkViewed(1)
+	if !ok {
+		t.Fatal("expected MarkViewed to succeed for existing call")
+	}
+	if !call.Viewed {
+		t.Error("expected returned call to be viewed")
+	}
+
+	calls := store.GetAll()
+	if !calls[1].Viewed {
+		t.Error("expected stored call with ID 1 to be viewed")
+	}
+	if calls[0].Viewed {
+		t.Error("expected call with ID 2 to remain unviewed")
+	}
+}
+
+func TestCallStore_MarkViewed_NotFound(t *testing.T) {
+	store := NewCallStore()
+
+	if _, ok := store.MarkViewed(42); ok {
+		t.Error("expected MarkViewed to fail for missing call")
+	}
+
+	store.Add(CapturedCall{Method: "GET", Path: "/test"})
+	if _, ok := store.MarkViewed(2); ok {
+		t.Error("expected MarkViewed to fail for unknown ID")
+	}
+}
+
 func TestCallStore_Clear(t *testing.T) {
 	store := NewCallStore()
 

@@ -87,6 +87,87 @@ func TestViewer_RendersHTML(t *testing.T) {
 	}
 }
 
+func TestViewer_MarkViewed(t *testing.T) {
+	store := NewCallStore()
+	store.Add(CapturedCall{Method: "GET", Path: "/test"})
+	server := NewViewer(store, ":8081")
+
+	req := httptest.NewRequest("POST", "/calls/1/viewed", nil)
+	w := httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+
+	body := w.Body.String()
+	if strings.Contains(body, "[ new ]") {
+		t.Error("expected viewed card to have no [ new ] badge")
+	}
+	if !strings.Contains(body, "/test") {
+		t.Error("expected card body to contain the call path")
+	}
+
+	calls := store.GetAll()
+	if !calls[0].Viewed {
+		t.Error("expected call to be marked viewed in the store")
+	}
+}
+
+func TestViewer_MarkViewed_UnknownID(t *testing.T) {
+	store := NewCallStore()
+	store.Add(CapturedCall{Method: "GET", Path: "/test"})
+	server := NewViewer(store, ":8081")
+
+	req := httptest.NewRequest("POST", "/calls/999/viewed", nil)
+	w := httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected status 404, got %d", w.Code)
+	}
+}
+
+func TestViewer_MarkViewed_InvalidID(t *testing.T) {
+	store := NewCallStore()
+	server := NewViewer(store, ":8081")
+
+	req := httptest.NewRequest("POST", "/calls/abc/viewed", nil)
+	w := httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestViewer_Clear_HTMXRequest(t *testing.T) {
+	store := NewCallStore()
+	store.Add(CapturedCall{Method: "GET", Path: "/test"})
+	server := NewViewer(store, ":8081")
+
+	req := httptest.NewRequest("POST", "/clear", nil)
+	req.Header.Set("HX-Request", "true")
+	w := httptest.NewRecorder()
+	server.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+
+	if len(store.GetAll()) != 0 {
+		t.Errorf("expected 0 calls after clear, got %d", len(store.GetAll()))
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, `id="content"`) {
+		t.Error("expected fragment to contain the content wrapper div")
+	}
+	if !strings.Contains(body, "no calls captured") {
+		t.Error("expected fragment to contain the empty state")
+	}
+}
+
 func TestViewer_Clear(t *testing.T) {
 	store := NewCallStore()
 	store.Add(CapturedCall{Method: "GET", Path: "/test"})

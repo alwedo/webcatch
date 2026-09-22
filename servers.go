@@ -1,15 +1,14 @@
 package main
 
 import (
-	_ "embed"
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 	"time"
-)
 
-//go:embed template.tmpl
-var templateHTML string
+	"github.com/alwedo/webcatch/assets"
+)
 
 func NewCapture(store *CallStore, addr string) *http.Server {
 	mux := http.NewServeMux()
@@ -48,14 +47,36 @@ func NewCapture(store *CallStore, addr string) *http.Server {
 
 func NewViewer(store *CallStore, addr string) *http.Server {
 	mux := http.NewServeMux()
-	tmpl := template.Must(template.New("view").Parse(templateHTML))
+	tmpl := template.Must(template.ParseFS(assets.HTMLFiles, "template.tmpl"))
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+	renderTemplate := func(w http.ResponseWriter, name string, data any) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-		if err := tmpl.Execute(w, store.GetAll()); err != nil {
+		if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
 			http.Error(w, fmt.Sprintf("Error rendering template: %v", err), http.StatusInternalServerError)
 		}
+	}
+
+	fileServer := http.FileServerFS(assets.StaticFiles)
+	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		renderTemplate(w, "view", store.GetAll())
+	})
+
+	mux.HandleFunc("POST /calls/{id}/viewed", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid call id", http.StatusBadRequest)
+			return
+		}
+
+		call, ok := store.MarkViewed(id)
+		if !ok {
+			http.Error(w, "call not found", http.StatusNotFound)
+			return
+		}
+
+		renderTemplate(w, "call-card", call)
 	})
 
 	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
@@ -83,14 +104,20 @@ func NewViewer(store *CallStore, addr string) *http.Server {
 				if !ok {
 					return
 				}
-				fmt.Fprintf(w, "data: new-call\n\n")
+				fmt.Fprintf(w, "event: new-call\ndata: new-call\n\n")
 				flusher.Flush()
 			}
 		}
 	})
 
-	mux.HandleFunc("POST /clear", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("POST /clear", func(w http.ResponseWriter, r *http.Request) {
 		store.Clear()
+
+		if r.Header.Get("HX-Request") == "true" {
+			renderTemplate(w, "page-content", store.GetAll())
+			return
+		}
+
 		w.Header().Set("Location", "/")
 		w.WriteHeader(http.StatusSeeOther)
 	})

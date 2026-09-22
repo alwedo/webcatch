@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{{define "view"}}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -110,6 +110,21 @@
             font-size: 0.85em;
         }
 
+        .new-badge {
+            background: none;
+            border: none;
+            padding: 0;
+            color: #000000;
+            font-weight: bold;
+            font-size: 0.85em;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+        }
+
+        .new-badge:hover {
+            text-decoration: underline;
+        }
+
         .call-body {
             padding: 10px 12px;
         }
@@ -211,81 +226,21 @@
         }
     </style>
 </head>
-<body>
+<body sse-connect="/events">
     <div class="container">
         <!-- Captured Calls View -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
             <h1 style="margin-bottom: 0;">webcatch</h1>
-            <button class="btn" onclick="fetch('/clear', {method: 'POST'}).then(() => location.reload())">[ clear ]</button>
+            <button class="btn" hx-post="/clear" hx-target="#content" hx-swap="outerHTML">[ clear ]</button>
         </div>
 
-        {{if .}}
-                <div class="call-list">
-                    {{range .}}
-                    <div class="call-card">
-                        <div class="call-header">
-                            <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
-                                <span class="call-method">{{.Method}}</span>
-                                <span class="call-path">{{.Path}}</span>
-                            </div>
-                            <span class="call-time">{{.Timestamp.Format "2006-01-02 15:04:05"}}</span>
-                        </div>
-                        <div class="call-body">
-                            {{if .Headers}}
-                            <div class="call-section">
-                                <div class="section-title">headers</div>
-                                <table class="headers-table">
-                                    {{range $key, $values := .Headers}}
-                                    <tr>
-                                        <td>{{$key}}</td>
-                                        <td>{{index $values 0}}</td>
-                                    </tr>
-                                    {{end}}
-                                </table>
-                            </div>
-                            {{end}}
+        {{template "page-content" .}}
 
-                            {{if .Body}}
-                            <div class="call-section">
-                                <div class="section-title">
-                                    body
-                                    <button class="btn json-beautify-btn" style="margin-left: 10px; padding: 2px 8px; font-size: 0.75em; display: none;" onclick="beautifyJSON(this)">[ beautify json ]</button>
-                                </div>
-                                <div class="body-content">{{.Body}}</div>
-                            </div>
-                            {{end}}
-                        </div>
-                    </div>
-                    {{end}}
-                </div>
-            {{else}}
-                <div class="empty-state">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                    </svg>
-                    <h2>no calls captured</h2>
-                    <p>send requests to http://localhost:8080/ to see them here</p>
-                </div>
-            {{end}}
+        <script src="/static/js/htmx.min.js"></script>
+        <script src="/static/js/hx-sse.min.js"></script>
+
 
         <script>
-            // Live updates via Server-Sent Events
-            const eventSource = new EventSource('/events');
-
-            eventSource.onmessage = function(event) {
-                if (event.data === 'new-call') {
-                    location.reload();
-                }
-            };
-
-            eventSource.onerror = function() {
-                console.error('SSE connection lost, retrying...');
-            };
-
-            eventSource.onopen = function() {
-                console.log('Live updates connected');
-            };
-
             // Check all body content on page load and show beautify button if valid JSON
             document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.body-content').forEach(function(bodyContent) {
@@ -327,3 +282,56 @@
     </div>
 </body>
 </html>
+{{end}}
+
+{{define "call-card"}}<div class="call-card">
+    <div class="call-header">
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+            <span class="call-method">{{.Method}}</span>
+            <span class="call-path">{{.Path}}</span>
+        </div>
+        {{if not .Viewed}}<button class="new-badge" title="Mark as viewed" hx-post="/calls/{{.ID}}/viewed" hx-target="closest .call-card" hx-swap="outerHTML">[ new ]</button>{{end}}
+        <span class="call-time">{{.Timestamp.Format "2006-01-02 15:04:05"}}</span>
+    </div>
+    <div class="call-body">
+        {{if .Headers}}
+        <div class="call-section">
+            <div class="section-title">headers</div>
+            <table class="headers-table">
+                {{range $key, $values := .Headers}}
+                <tr>
+                    <td>{{$key}}</td>
+                    <td>{{index $values 0}}</td>
+                </tr>
+                {{end}}
+            </table>
+        </div>
+        {{end}}
+
+        {{if .Body}}
+        <div class="call-section">
+            <div class="section-title">
+                body
+                <button class="btn json-beautify-btn" style="margin-left: 10px; padding: 2px 8px; font-size: 0.75em; display: none;" onclick="beautifyJSON(this)">[ beautify json ]</button>
+            </div>
+            <div class="body-content">{{.Body}}</div>
+        </div>
+        {{end}}
+    </div>
+</div>{{end}}
+
+{{define "content"}}{{if .}}
+    <div class="call-list">
+        {{range .}}{{template "call-card" .}}{{end}}
+    </div>
+{{else}}
+    <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <h2>no calls captured</h2>
+        <p>send requests to http://localhost:8080/ to see them here</p>
+    </div>
+{{end}}{{end}}
+
+{{define "page-content"}}<div id="content" hx-get="/" hx-select="#content" hx-target="#content" hx-swap="outerHTML" hx-trigger="new-call from:body">{{template "content" .}}</div>{{end}}

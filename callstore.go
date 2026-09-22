@@ -8,18 +8,21 @@ import (
 )
 
 type CapturedCall struct {
+	ID         int
 	Timestamp  time.Time
 	Method     string
 	Path       string
 	Headers    http.Header
 	Body       string
 	RemoteAddr string
+	Viewed     bool
 }
 
 type CallStore struct {
 	mu        sync.RWMutex
 	calls     []CapturedCall
 	listeners []chan CapturedCall
+	nextID    int
 }
 
 func NewCallStore() *CallStore {
@@ -31,6 +34,8 @@ func NewCallStore() *CallStore {
 func (cs *CallStore) Add(call CapturedCall) {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
+	cs.nextID++
+	call.ID = cs.nextID
 	cs.calls = append(cs.calls, call)
 
 	for _, listener := range cs.listeners {
@@ -69,6 +74,18 @@ func (cs *CallStore) Unsubscribe(ch chan CapturedCall) {
 			break
 		}
 	}
+}
+
+func (cs *CallStore) MarkViewed(id int) (CapturedCall, bool) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	for i := range cs.calls {
+		if cs.calls[i].ID == id {
+			cs.calls[i].Viewed = true
+			return cs.calls[i], true
+		}
+	}
+	return CapturedCall{}, false
 }
 
 func (cs *CallStore) Clear() {
