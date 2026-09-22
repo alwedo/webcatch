@@ -205,6 +205,53 @@ func TestViewer_Beautify_UnknownID(t *testing.T) {
 	}
 }
 
+func TestViewer_SortOrder(t *testing.T) {
+	store := NewCallStore()
+	store.Add(CapturedCall{Method: "GET", Path: "/first"})
+	store.Add(CapturedCall{Method: "GET", Path: "/second"})
+	server := NewViewer(store, ":8081")
+
+	tests := []struct {
+		name       string
+		query      string
+		currentURL string
+		wantFirst  string
+		wantToggle string // label reflects the current sort state
+	}{
+		{name: "default is newest first", query: "", wantFirst: "/second", wantToggle: "newest first"},
+		{name: "explicit desc", query: "?sort=desc", wantFirst: "/second", wantToggle: "newest first"},
+		{name: "asc via query", query: "?sort=asc", wantFirst: "/first", wantToggle: "oldest first"},
+		{name: "asc via HX-Current-URL", currentURL: "http://localhost:8081/?sort=asc", wantFirst: "/first", wantToggle: "oldest first"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/"+tt.query, nil)
+			if tt.currentURL != "" {
+				req.Header.Set("HX-Current-URL", tt.currentURL)
+			}
+			w := httptest.NewRecorder()
+			server.Handler.ServeHTTP(w, req)
+
+			body := w.Body.String()
+			firstIdx := strings.Index(body, tt.wantFirst)
+			if firstIdx == -1 {
+				t.Fatalf("expected body to contain %s, got %s", tt.wantFirst, body)
+			}
+			other := "/first"
+			if tt.wantFirst == "/first" {
+				other = "/second"
+			}
+			if idx := strings.Index(body, other); idx != -1 && idx < firstIdx {
+				t.Errorf("expected %s before %s, got %s", tt.wantFirst, other, body)
+			}
+			if !strings.Contains(body, tt.wantToggle) {
+				t.Errorf("expected sort toggle to show %q, got %s", tt.wantToggle, body)
+			}
+		})
+	}
+}
+
 func TestViewer_Clear_HTMXRequest(t *testing.T) {
 	store := NewCallStore()
 	store.Add(CapturedCall{Method: "GET", Path: "/test"})

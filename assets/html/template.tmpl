@@ -228,11 +228,7 @@
 </head>
 <body sse-connect="/events">
     <div class="container">
-        <!-- Captured Calls View -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <h1 style="margin-bottom: 0;">webcatch</h1>
-            <button class="btn" hx-post="/clear" hx-target="#content" hx-swap="outerHTML">[ clear ]</button>
-        </div>
+        <h1>webcatch</h1>
 
         {{template "page-content" .}}
 
@@ -293,4 +289,4 @@
     </div>
 {{end}}{{end}}
 
-{{define "page-content"}}<div id="content" hx-get="/" hx-select="#content" hx-target="#content" hx-swap="outerHTML" hx-trigger="new-call from:body">{{template "content" .}}</div>{{end}}
+{{define "page-content"}}<div id="content" hx-get="/" hx-select="#content" hx-target="#content" hx-swap="outerHTML" hx-trigger="new-call from:body"><div style="display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px;">{{if .Calls}}<button class="btn" hx-get="{{if eq .Sort "asc"}}/?sort=desc{{else}}/?sort=asc{{end}}" hx-target="#content" hx-select="#content" hx-swap="outerHTML" hx-push-url="true">[ sort: {{if eq .Sort "asc"}}oldest first{{else}}newest first{{end}} ]</button>{{end}}<button class="btn" hx-post="/clear" hx-target="#content" hx-swap="outerHTML">[ clear ]</button></div>{{template "content" .Calls}}</div>{{end}}

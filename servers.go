@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -74,9 +76,37 @@ func renderTemplate(tmpl *template.Template, w http.ResponseWriter, name string,
 	}
 }
 
+// pageData is the data for templates that need the call list and the current
+// sort order.
+type pageData struct {
+	Calls []CapturedCall
+	Sort  string // "desc" (newest first, default) or "asc" (oldest first)
+}
+
+// sortParam returns the requested sort order from the query string, falling
+// back to the browser URL reported by htmx (HX-Current-URL) so that
+// SSE-triggered re-renders preserve the current sort.
+func sortParam(r *http.Request) string {
+	if s := r.URL.Query().Get("sort"); s != "" {
+		return s
+	}
+	if cur := r.Header.Get("HX-Current-URL"); cur != "" {
+		if u, err := url.Parse(cur); err == nil {
+			return u.Query().Get("sort")
+		}
+	}
+	return ""
+}
+
 func handleIndex(store *CallStore, tmpl *template.Template) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		renderTemplate(tmpl, w, "view", store.GetAll())
+	return func(w http.ResponseWriter, r *http.Request) {
+		calls := store.GetAll()
+		data := pageData{Calls: calls, Sort: "desc"}
+		if sortParam(r) == "asc" {
+			slices.Reverse(calls)
+			data.Sort = "asc"
+		}
+		renderTemplate(tmpl, w, "view", data)
 	}
 }
 
@@ -154,7 +184,11 @@ func handleClear(store *CallStore, tmpl *template.Template) http.HandlerFunc {
 		store.Clear()
 
 		if r.Header.Get("HX-Request") == "true" {
-			renderTemplate(tmpl, w, "page-content", store.GetAll())
+			data := pageData{Calls: store.GetAll(), Sort: "desc"}
+			if sortParam(r) == "asc" {
+				data.Sort = "asc"
+			}
+			renderTemplate(tmpl, w, "page-content", data)
 			return
 		}
 
