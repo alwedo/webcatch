@@ -50,22 +50,22 @@ func main() {
 		}
 	})
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	<-stop
+	<-ctx.Done()
 	log.Println("Shutting down servers...")
 
 	store.CloseListeners()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := captureServer.Shutdown(ctx); err != nil {
+	if err := captureServer.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Capture server shutdown error: %v", err)
 	}
 
-	if err := viewerServer.Shutdown(ctx); err != nil {
+	if err := viewerServer.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Viewer server shutdown error: %v", err)
 	}
 
