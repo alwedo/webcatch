@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0](https://github.com/alwedo/webcatch/compare/v0.3.0...v0.4.0) (2026-09-22)
+
+
+### Features
+
+* move JSON beautification to the backend with persisted state ([dca6734](https://github.com/alwedo/webcatch/commit/dca67348a487e2df2ba0a48f46254325a0326946))
+* sort captured calls newest or oldest first ([877acc9](https://github.com/alwedo/webcatch/commit/877acc9cd46af141ac49b3afd2d4f5d510b519b5))
+* track new and viewed calls with [ new ] badge ([785a858](https://github.com/alwedo/webcatch/commit/785a8581b55d15fa99ed6ec0796e9a389c53382e))
+
 ## [0.3.0](https://github.com/alwedo/webcatch/compare/v0.2.0...v0.3.0) (2026-07-07)
 
 
